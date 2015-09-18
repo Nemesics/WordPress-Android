@@ -228,6 +228,8 @@
     <!-- post view -->
     <string name="post_id">Post</string>
     <string name="upload_failed">Upload failed</string>
+    <string name="post_uploaded">Post uploaded</string>
+    <string name="page_uploaded">Page uploaded</string>
     <string name="post_password">Password (optional)</string>
     <string name="caption">Caption (optional)</string>
     <string name="horizontal_alignment">Horizontal alignment</string>
@@ -738,6 +740,7 @@
     <string name="error_blog_hidden">This blog is hidden and couldn\'t be loaded. Enable it again in settings and try again.</string>
     <string name="fatal_db_error">An error occurred while creating the app database. Try reinstalling the app.</string>
     <string name="error_copy_to_clipboard">An error occurred while copying text to clipboard</string>
+    <string name="error_open_list_from_notification">This post or page was published on another site</string>
 
     <!-- Image Descriptions for Accessibility -->
     <string name="content_description_add_media">Add media</string>
@@ -781,8 +784,8 @@
 
     <!-- view pager titles -->
     <string name="reader_page_followed_tags">Followed tags</string>
-    <string name="reader_page_followed_blogs">Followed blogs</string>
-    <string name="reader_page_recommended_blogs">Blogs you may like</string>
+    <string name="reader_page_followed_blogs">Followed sites</string>
+    <string name="reader_page_recommended_blogs">Sites you may like</string>
 
     <!-- share dialog title when sharing a reader url -->
     <string name="reader_share_link">Share link</string>
@@ -867,7 +870,7 @@
     <string name="reader_empty_posts_in_tag_updating">Fetching posts…</string>
     <string name="reader_empty_followed_tags">You don\'t follow any tags</string>
     <string name="reader_empty_recommended_blogs">No recommended blogs</string>
-    <string name="reader_empty_followed_blogs_title">You\'re not following any blogs yet</string>
+    <string name="reader_empty_followed_blogs_title">You\'re not following any sites yet</string>
     <string name="reader_empty_followed_blogs_description">But don\'t worry, just tap the icon at the top right to start exploring!</string>
     <string name="reader_empty_posts_liked">You haven\'t liked any posts</string>
     <string name="reader_empty_comments">No comments yet</string>
