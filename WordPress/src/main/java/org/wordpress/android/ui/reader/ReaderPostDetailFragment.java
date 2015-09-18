@@ -76,6 +76,7 @@ public class ReaderPostDetailFragment extends Fragment
     private int mToolbarHeight;
 
     private ReaderInterfaces.AutoHideToolbarListener mAutoHideToolbarListener;
+    private ReaderInterfaces.OnReaderUrlTappedListener mUrlTappedListener;
 
     public static ReaderPostDetailFragment newInstance(long blogId, long postId) {
         return newInstance(blogId, postId, null);
@@ -122,6 +123,9 @@ public class ReaderPostDetailFragment extends Fragment
         super.onAttach(activity);
         if (activity instanceof ReaderInterfaces.AutoHideToolbarListener) {
             mAutoHideToolbarListener = (ReaderInterfaces.AutoHideToolbarListener) activity;
+        }
+        if (activity instanceof ReaderInterfaces.OnReaderUrlTappedListener) {
+            mUrlTappedListener = (ReaderInterfaces.OnReaderUrlTappedListener) activity;
         }
         mToolbarHeight = activity.getResources().getDimensionPixelSize(R.dimen.toolbar_height);
     }
@@ -189,8 +193,8 @@ public class ReaderPostDetailFragment extends Fragment
     public boolean onOptionsItemSelected(MenuItem item) {
         int i = item.getItemId();
         if (i == R.id.menu_browse) {
-            if (hasPost()) {
-                ReaderActivityLauncher.openUrl(getActivity(), mPost.getUrl(), OpenUrlType.EXTERNAL);
+            if (hasPost() && mPost.hasUrl()) {
+                onUrlClick(mPost.getUrl());
             }
             return true;
         } else if (i == R.id.menu_share) {
@@ -800,15 +804,12 @@ public class ReaderPostDetailFragment extends Fragment
             return true;
         }
 
-        // open YouTube videos in external app so they launch the YouTube player, open all other
-        // urls using an AuthenticatedWebViewActivity
-        final OpenUrlType openUrlType;
-        if (ReaderVideoUtils.isYouTubeVideoLink(url)) {
-            openUrlType = OpenUrlType.EXTERNAL;
+        if (mUrlTappedListener != null) {
+            mUrlTappedListener.onReaderUrlTapped(url);
         } else {
-            openUrlType = OpenUrlType.INTERNAL;
+            ReaderActivityLauncher.openUrl(getActivity(), url);
         }
-        ReaderActivityLauncher.openUrl(getActivity(), url, openUrlType);
+
         return true;
     }
 

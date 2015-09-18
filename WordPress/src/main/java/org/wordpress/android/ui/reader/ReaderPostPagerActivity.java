@@ -2,8 +2,14 @@ package org.wordpress.android.ui.reader;
 
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.support.customtabs.CustomTabsClient;
+import android.support.customtabs.CustomTabsServiceConnection;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
@@ -26,6 +32,7 @@ import org.wordpress.android.ui.reader.actions.ReaderPostActions;
 import org.wordpress.android.ui.reader.models.ReaderBlogIdPostId;
 import org.wordpress.android.ui.reader.models.ReaderBlogIdPostIdList;
 import org.wordpress.android.ui.reader.services.ReaderPostService;
+import org.wordpress.android.ui.reader.utils.ReaderVideoUtils;
 import org.wordpress.android.util.AniUtils;
 import org.wordpress.android.util.AppLog;
 import org.wordpress.android.util.NetworkUtils;
@@ -43,7 +50,8 @@ import de.greenrobot.event.EventBus;
  * post detail
  */
 public class ReaderPostPagerActivity extends AppCompatActivity
-        implements ReaderInterfaces.AutoHideToolbarListener {
+        implements ReaderInterfaces.AutoHideToolbarListener,
+                   ReaderInterfaces.OnReaderUrlTappedListener {
 
     private WPViewPager mViewPager;
     private ProgressBar mProgress;
@@ -60,6 +68,14 @@ public class ReaderPostPagerActivity extends AppCompatActivity
     private final HashSet<Integer> mBumpedPageViewPositions = new HashSet<>();
 
     private static final String ARG_IS_SINGLE_POST = "is_single_post";
+
+    // Chrome custom tabs
+    private boolean mIsChromeCustomTabsSupported;
+    private static final String EXTRA_CUSTOM_TABS_SESSION = "android.support.customtabs.extra.SESSION";
+    private static final String KEY_CUSTOM_TABS_ICON = "android.support.customtabs.customaction.ICON";
+    private static final String KEY_CUSTOM_TABS_PENDING_INTENT = "android.support.customtabs.customaction.PENDING_INTENT";
+    private static final String ACTION_CUSTOM_TABS_CONNECTION =  "android.support.customtabs.action.CustomTabsService";
+    private static final String CUSTOM_TAB_PACKAGE_NAME = "com.android.chrome";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -129,6 +145,32 @@ public class ReaderPostPagerActivity extends AppCompatActivity
 
         mViewPager.setPageTransformer(false,
                 new ReaderViewPagerTransformer(ReaderViewPagerTransformer.TransformType.SLIDE_OVER));
+
+        initCustomTabs();
+    }
+
+    /*
+     * detect whether Chrome custom tabs are supported on this device
+     */
+    private void initCustomTabs() {
+        Intent serviceIntent = new Intent(ACTION_CUSTOM_TABS_CONNECTION);
+
+        CustomTabsServiceConnection connection = new CustomTabsServiceConnection() {
+            @Override
+            public void onCustomTabsServiceConnected(ComponentName componentName, CustomTabsClient customTabsClient) {
+
+            }
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+
+            }
+        };
+        serviceIntent.setPackage(CUSTOM_TAB_PACKAGE_NAME);
+
+        mIsChromeCustomTabsSupported = bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE | Context.BIND_WAIVE_PRIORITY);
+        if (mIsChromeCustomTabsSupported) {
+            unbindService(connection);
+        }
     }
 
     @Override
@@ -363,6 +405,24 @@ public class ReaderPostPagerActivity extends AppCompatActivity
     public void onShowHideToolbar(boolean show) {
         if (!isFinishing()) {
             AniUtils.animateTopBar(mToolbar, show);
+        }
+    }
+
+    @Override
+    public void onReaderUrlTapped(String url) {
+        // open YouTube videos in external app so they launch the YouTube player
+        if (ReaderVideoUtils.isYouTubeVideoLink(url)) {
+            ReaderActivityLauncher.openUrl(this, url, ReaderActivityLauncher.OpenUrlType.EXTERNAL);
+        } else if (mIsChromeCustomTabsSupported) {
+            // show internally in a Chrome custom tab when available
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            Bundle extras = new Bundle();
+            extras.putBinder(EXTRA_CUSTOM_TABS_SESSION, null);
+            intent.putExtras(extras);
+            startActivity(intent);
+        } else {
+            // fallback to showing internally in a webView activity
+            ReaderActivityLauncher.openUrl(this, url, ReaderActivityLauncher.OpenUrlType.INTERNAL);
         }
     }
 

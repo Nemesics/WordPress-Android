@@ -35,4 +35,11 @@ public class ReaderInterfaces {
         public void onDataLoaded(boolean isEmpty);
     }
 
+    /*
+     * used by reader detail when user clicks a url
+     */
+    public interface OnReaderUrlTappedListener {
+        public void onReaderUrlTapped(String url);
+    }
+
 }
