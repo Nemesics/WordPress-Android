@@ -409,11 +409,12 @@ public class ReaderPostPagerActivity extends AppCompatActivity
         if (ReaderVideoUtils.isYouTubeVideoLink(url)) {
             ReaderActivityLauncher.openUrl(this, url, ReaderActivityLauncher.OpenUrlType.EXTERNAL);
         } else {
+            // show other urls internally in a Chrome custom tab when available, otherwise
+            // fallback to our webView activity
             CustomTabsSession session = getCustomTabsSession();
-            // show internally in a Chrome custom tab when available, otherwise fallback to
-            // our webView activity
             if (session != null) {
                 CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder(session);
+                builder.setShowTitle(true);
                 CustomTabsIntent customTabsIntent = builder.build();
                 CustomTabsHelper.addKeepAliveExtra(this, customTabsIntent.intent);
                 customTabsIntent.launchUrl(this, Uri.parse(url));
