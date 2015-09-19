@@ -413,6 +413,8 @@ public class ReaderPostPagerActivity extends AppCompatActivity
             if (session != null) {
                 CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder(session);
                 builder.setShowTitle(true);
+                builder.setStartAnimations(this, R.anim.activity_slide_in_from_right, R.anim.do_nothing);
+                builder.setExitAnimations(this, R.anim.do_nothing, R.anim.activity_slide_out_to_right);
                 CustomTabsIntent customTabsIntent = builder.build();
                 CustomTabsHelper.addKeepAliveExtra(this, customTabsIntent.intent);
                 customTabsIntent.launchUrl(this, Uri.parse(url));
