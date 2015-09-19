@@ -3,13 +3,14 @@ package org.wordpress.android.ui.reader;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.support.customtabs.CustomTabsCallback;
 import android.support.customtabs.CustomTabsClient;
+import android.support.customtabs.CustomTabsIntent;
 import android.support.customtabs.CustomTabsServiceConnection;
+import android.support.customtabs.CustomTabsSession;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
@@ -35,6 +36,7 @@ import org.wordpress.android.ui.reader.services.ReaderPostService;
 import org.wordpress.android.ui.reader.utils.ReaderVideoUtils;
 import org.wordpress.android.util.AniUtils;
 import org.wordpress.android.util.AppLog;
+import org.wordpress.android.util.CustomTabsHelper;
 import org.wordpress.android.util.NetworkUtils;
 import org.wordpress.android.widgets.WPViewPager;
 
@@ -70,7 +72,9 @@ public class ReaderPostPagerActivity extends AppCompatActivity
     private static final String ARG_IS_SINGLE_POST = "is_single_post";
 
     // Chrome custom tabs
-    private boolean mIsChromeCustomTabsSupported;
+    private CustomTabsSession mCustomTabsSession;
+    private CustomTabsClient mCustomTabsClient;
+    private CustomTabsServiceConnection mCustomTabsServiceConnection;
     private static final String EXTRA_CUSTOM_TABS_SESSION = "android.support.customtabs.extra.SESSION";
     private static final String KEY_CUSTOM_TABS_ICON = "android.support.customtabs.customaction.ICON";
     private static final String KEY_CUSTOM_TABS_PENDING_INTENT = "android.support.customtabs.customaction.PENDING_INTENT";
@@ -146,31 +150,13 @@ public class ReaderPostPagerActivity extends AppCompatActivity
         mViewPager.setPageTransformer(false,
                 new ReaderViewPagerTransformer(ReaderViewPagerTransformer.TransformType.SLIDE_OVER));
 
-        initCustomTabs();
+        bindCustomTabsService();
     }
 
-    /*
-     * detect whether Chrome custom tabs are supported on this device
-     */
-    private void initCustomTabs() {
-        Intent serviceIntent = new Intent(ACTION_CUSTOM_TABS_CONNECTION);
-
-        CustomTabsServiceConnection connection = new CustomTabsServiceConnection() {
-            @Override
-            public void onCustomTabsServiceConnected(ComponentName componentName, CustomTabsClient customTabsClient) {
-
-            }
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-
-            }
-        };
-        serviceIntent.setPackage(CUSTOM_TAB_PACKAGE_NAME);
-
-        mIsChromeCustomTabsSupported = bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE | Context.BIND_WAIVE_PRIORITY);
-        if (mIsChromeCustomTabsSupported) {
-            unbindService(connection);
-        }
+    @Override
+    protected void onDestroy() {
+        unbindCustomTabsService();
+        super.onDestroy();
     }
 
     @Override
@@ -413,17 +399,61 @@ public class ReaderPostPagerActivity extends AppCompatActivity
         // open YouTube videos in external app so they launch the YouTube player
         if (ReaderVideoUtils.isYouTubeVideoLink(url)) {
             ReaderActivityLauncher.openUrl(this, url, ReaderActivityLauncher.OpenUrlType.EXTERNAL);
-        } else if (mIsChromeCustomTabsSupported) {
+        } else if (mCustomTabsClient != null) {
             // show internally in a Chrome custom tab when available
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            Bundle extras = new Bundle();
-            extras.putBinder(EXTRA_CUSTOM_TABS_SESSION, null);
-            intent.putExtras(extras);
-            startActivity(intent);
+            CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder(getCustomTabsSession());
+            CustomTabsIntent customTabsIntent = builder.build();
+            CustomTabsHelper.addKeepAliveExtra(this, customTabsIntent.intent);
+            customTabsIntent.launchUrl(this, Uri.parse(url));
         } else {
             // fallback to showing internally in a webView activity
             ReaderActivityLauncher.openUrl(this, url, ReaderActivityLauncher.OpenUrlType.INTERNAL);
         }
+    }
+
+    private CustomTabsSession getCustomTabsSession() {
+        if (mCustomTabsClient == null) {
+            mCustomTabsSession = null;
+        } else if (mCustomTabsSession == null) {
+            mCustomTabsSession = mCustomTabsClient.newSession(new CustomTabsCallback() {
+                @Override
+                public void onNavigationEvent(int navigationEvent, Bundle extras) {
+                    AppLog.d(AppLog.T.READER, "custom tab onNavigationEvent: Code = " + navigationEvent);
+                }
+            });
+        }
+        return mCustomTabsSession;
+    }
+
+    private void bindCustomTabsService() {
+        if (mCustomTabsClient != null) return;
+
+        String packageNameToBind = CustomTabsHelper.getPackageNameToUse(this);
+        if (packageNameToBind == null) return;
+
+        mCustomTabsServiceConnection = new CustomTabsServiceConnection() {
+            @Override
+            public void onCustomTabsServiceConnected(ComponentName name, CustomTabsClient client) {
+                mCustomTabsClient = client;
+                mCustomTabsClient.warmup(0);
+            }
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                mCustomTabsClient = null;
+            }
+        };
+
+        boolean isConnected = CustomTabsClient.bindCustomTabsService(this, packageNameToBind, mCustomTabsServiceConnection);
+        if (!isConnected) {
+            mCustomTabsServiceConnection = null;
+        }
+    }
+
+    private void unbindCustomTabsService() {
+        if (mCustomTabsServiceConnection == null) return;
+        unbindService(mCustomTabsServiceConnection);
+        mCustomTabsClient = null;
+        mCustomTabsSession = null;
     }
 
     /**
