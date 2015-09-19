@@ -16,6 +16,7 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.util.SparseArray;
 import android.view.MenuItem;
 import android.view.View;
@@ -131,6 +132,14 @@ public class ReaderPostPagerActivity extends AppCompatActivity
                 AnalyticsTracker.track(AnalyticsTracker.Stat.READER_OPENED_ARTICLE);
                 onShowHideToolbar(true);
                 bumpPageViewIfNeeded(position);
+                // let Chrome custom tabs know the url for this post may be launched
+                CustomTabsSession session = getCustomTabsSession();
+                if (session != null) {
+                    String url = getPagerAdapter().getPostUrlAtPosition(position);
+                    if (!TextUtils.isEmpty(url)) {
+                        session.mayLaunchUrl(Uri.parse(url), null, null);
+                    }
+                }
             }
 
             @Override
@@ -399,15 +408,18 @@ public class ReaderPostPagerActivity extends AppCompatActivity
         // open YouTube videos in external app so they launch the YouTube player
         if (ReaderVideoUtils.isYouTubeVideoLink(url)) {
             ReaderActivityLauncher.openUrl(this, url, ReaderActivityLauncher.OpenUrlType.EXTERNAL);
-        } else if (mCustomTabsClient != null) {
-            // show internally in a Chrome custom tab when available
-            CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder(getCustomTabsSession());
-            CustomTabsIntent customTabsIntent = builder.build();
-            CustomTabsHelper.addKeepAliveExtra(this, customTabsIntent.intent);
-            customTabsIntent.launchUrl(this, Uri.parse(url));
         } else {
-            // fallback to showing internally in a webView activity
-            ReaderActivityLauncher.openUrl(this, url, ReaderActivityLauncher.OpenUrlType.INTERNAL);
+            CustomTabsSession session = getCustomTabsSession();
+            // show internally in a Chrome custom tab when available, otherwise fallback to
+            // our webView activity
+            if (session != null) {
+                CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder(session);
+                CustomTabsIntent customTabsIntent = builder.build();
+                CustomTabsHelper.addKeepAliveExtra(this, customTabsIntent.intent);
+                customTabsIntent.launchUrl(this, Uri.parse(url));
+            } else {
+                ReaderActivityLauncher.openUrl(this, url, ReaderActivityLauncher.OpenUrlType.INTERNAL);
+            }
         }
     }
 
@@ -561,5 +573,15 @@ public class ReaderPostPagerActivity extends AppCompatActivity
                 return null;
             }
         }
+
+        String getPostUrlAtPosition(int position) {
+            ReaderBlogIdPostId ids = getBlogIdPostIdAtPosition(position);
+            if (ids != null) {
+                return ReaderPostTable.getPostUrl(ids.getBlogId(), ids.getPostId());
+            } else {
+                return null;
+            }
+        }
+
     }
 }
