@@ -6,7 +6,6 @@ import android.content.ComponentName;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
-import android.support.customtabs.CustomTabsCallback;
 import android.support.customtabs.CustomTabsClient;
 import android.support.customtabs.CustomTabsIntent;
 import android.support.customtabs.CustomTabsServiceConnection;
@@ -76,11 +75,6 @@ public class ReaderPostPagerActivity extends AppCompatActivity
     private CustomTabsSession mCustomTabsSession;
     private CustomTabsClient mCustomTabsClient;
     private CustomTabsServiceConnection mCustomTabsServiceConnection;
-    private static final String EXTRA_CUSTOM_TABS_SESSION = "android.support.customtabs.extra.SESSION";
-    private static final String KEY_CUSTOM_TABS_ICON = "android.support.customtabs.customaction.ICON";
-    private static final String KEY_CUSTOM_TABS_PENDING_INTENT = "android.support.customtabs.customaction.PENDING_INTENT";
-    private static final String ACTION_CUSTOM_TABS_CONNECTION =  "android.support.customtabs.action.CustomTabsService";
-    private static final String CUSTOM_TAB_PACKAGE_NAME = "com.android.chrome";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -403,6 +397,10 @@ public class ReaderPostPagerActivity extends AppCompatActivity
         }
     }
 
+    /*
+     * called by detail fragment when user taps a url in the post's content, and also when
+     * user chooses to view the post in the browser
+     */
     @Override
     public void onReaderUrlTapped(String url) {
         // open YouTube videos in external app so they launch the YouTube player
@@ -428,12 +426,7 @@ public class ReaderPostPagerActivity extends AppCompatActivity
         if (mCustomTabsClient == null) {
             mCustomTabsSession = null;
         } else if (mCustomTabsSession == null) {
-            mCustomTabsSession = mCustomTabsClient.newSession(new CustomTabsCallback() {
-                @Override
-                public void onNavigationEvent(int navigationEvent, Bundle extras) {
-                    AppLog.d(AppLog.T.READER, "custom tab onNavigationEvent: Code = " + navigationEvent);
-                }
-            });
+            mCustomTabsSession = mCustomTabsClient.newSession(null);
         }
         return mCustomTabsSession;
     }
