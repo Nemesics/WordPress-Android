@@ -3,6 +3,7 @@ package org.wordpress.android.ui.reader;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.ComponentName;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -415,6 +416,8 @@ public class ReaderPostPagerActivity extends AppCompatActivity
                 builder.setShowTitle(true);
                 builder.setStartAnimations(this, R.anim.activity_slide_in_from_right, R.anim.do_nothing);
                 builder.setExitAnimations(this, R.anim.do_nothing, R.anim.activity_slide_out_to_right);
+                builder.setCloseButtonIcon(
+                        BitmapFactory.decodeResource(getResources(), R.drawable.ic_arrow_back_black_24dp));
                 CustomTabsIntent customTabsIntent = builder.build();
                 CustomTabsHelper.addKeepAliveExtra(this, customTabsIntent.intent);
                 customTabsIntent.launchUrl(this, Uri.parse(url));
