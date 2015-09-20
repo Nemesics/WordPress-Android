@@ -32,7 +32,6 @@ import org.wordpress.android.ui.reader.actions.ReaderActions;
 import org.wordpress.android.ui.reader.actions.ReaderBlogActions;
 import org.wordpress.android.ui.reader.actions.ReaderPostActions;
 import org.wordpress.android.ui.reader.utils.ReaderUtils;
-import org.wordpress.android.ui.reader.utils.ReaderVideoUtils;
 import org.wordpress.android.ui.reader.views.ReaderFollowButton;
 import org.wordpress.android.ui.reader.views.ReaderIconCountView;
 import org.wordpress.android.ui.reader.views.ReaderLikingUsersView;
@@ -194,7 +193,11 @@ public class ReaderPostDetailFragment extends Fragment
         int i = item.getItemId();
         if (i == R.id.menu_browse) {
             if (hasPost() && mPost.hasUrl()) {
-                onUrlClick(mPost.getUrl());
+                if (mUrlTappedListener != null) {
+                    mUrlTappedListener.onReaderUrlTapped(mPost.getUrl());
+                } else {
+                    ReaderActivityLauncher.openUrl(getActivity(), mPost.getUrl(), OpenUrlType.EXTERNAL);
+                }
             }
             return true;
         } else if (i == R.id.menu_share) {
